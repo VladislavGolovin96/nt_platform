@@ -1,0 +1,170 @@
+spring:
+  application:
+    name: api-gateway
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:5173"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+              - PATCH
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+      routes:
+        # Auth routes — no rate limiting, public endpoints handled by JwtAuthGlobalFilter
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/auth/**
+
+        # Project routes — default rate limit
+        - id: project-service
+          uri: lb://project-service
+          predicates:
+            - Path=/api/projects/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                rate-limiter: "#{@defaultRateLimiter}"
+                key-resolver: "#{@userKeyResolver}"
+
+        # Execution POST — strict rate limit (10 req/min)
+        - id: execution-service-post
+          uri: lb://execution-service
+          predicates:
+            - Path=/api/executions
+            - Method=POST
+          filters:
+            - name: RequestRateLimiter
+              args:
+                rate-limiter: "#{@executionsRateLimiter}"
+                key-resolver: "#{@userKeyResolver}"
+
+        # All other execution routes — default rate limit
+        - id: execution-service
+          uri: lb://execution-service
+          predicates:
+            - Path=/api/executions/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                rate-limiter: "#{@defaultRateLimiter}"
+                key-resolver: "#{@userKeyResolver}"
+
+        # Report routes — default rate limit
+        - id: report-service
+          uri: lb://report-service
+          predicates:
+            - Path=/api/reports/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                rate-limiter: "#{@defaultRateLimiter}"
+                key-resolver: "#{@userKeyResolver}"
+
+        # Notification routes — default rate limit
+        - id: notification-service
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                rate-limiter: "#{@defaultRateLimiter}"
+                key-resolver: "#{@userKeyResolver}"
+
+    # Static service discovery — resolves lb:// URIs without Eureka
+    discovery:
+      client:
+        simple:
+          instances:
+            auth-service:
+              - uri: http://localhost:8081
+                instanceId: auth-service-1
+            project-service:
+              - uri: http://localhost:8082
+                instanceId: project-service-1
+            execution-service:
+              - uri: http://localhost:8083
+                instanceId: execution-service-1
+            report-service:
+              - uri: http://localhost:8084
+                instanceId: report-service-1
+            notification-service:
+              - uri: http://localhost:8085
+                instanceId: notification-service-1
+
+services:
+  auth-service:
+    url: http://localhost:8081
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    com.loadtest: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+  cloud:
+    discovery:
+      client:
+        simple:
+          instances:
+            auth-service:
+              - uri: http://auth-service:8081
+                instanceId: auth-service-1
+            project-service:
+              - uri: http://project-service:8082
+                instanceId: project-service-1
+            execution-service:
+              - uri: http://execution-service:8083
+                instanceId: execution-service-1
+            report-service:
+              - uri: http://report-service:8084
+                instanceId: report-service-1
+            notification-service:
+              - uri: http://notification-service:8085
+                instanceId: notification-service-1
+
+services:
+  auth-service:
+    url: http://auth-service:8081
+
+logging:
+  pattern:
+    console: '{"time":"%d","level":"%p","service":"api-gateway","msg":"%m"}%n'
