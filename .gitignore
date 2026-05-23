@@ -1,0 +1,39 @@
+# Secrets
+.env
+
+# Maven build output
+target/
+*.jar
+*.war
+*.ear
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker override (local only)
+docker-compose.override.yml
+
+# Logs
+*.log
+
+# Gatling results
+gatling-results/
+/tmp/
+
+# IntelliJ
+*.class
+
+
