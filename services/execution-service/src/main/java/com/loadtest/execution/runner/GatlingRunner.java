@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,13 +54,17 @@ public class GatlingRunner {
     }
 
     public int run(String artifactClassesDir, String simulationClass, String executionId,
-                   Consumer<String> lineCallback) throws IOException, InterruptedException {
+                   Consumer<String> lineCallback, Consumer<Long> pidCallback) throws IOException, InterruptedException {
         List<String> command = buildCommand(artifactClassesDir, simulationClass, executionId);
         log.info("Launching Gatling for execution {}: {}", executionId, String.join(" ", command));
 
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.redirectErrorStream(true);
         Process process = pb.start();
+
+        if (pidCallback != null) {
+            pidCallback.accept(process.pid());
+        }
 
         streamOutput(process, executionId, lineCallback);
 
