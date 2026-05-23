@@ -17,6 +17,7 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    table: flyway_auth_history
   data:
     redis:
       host: localhost

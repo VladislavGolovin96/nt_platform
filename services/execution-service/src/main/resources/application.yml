@@ -15,6 +15,7 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    table: flyway_execution_history
   data:
     mongodb:
       uri: mongodb://localhost:27017/loadtest

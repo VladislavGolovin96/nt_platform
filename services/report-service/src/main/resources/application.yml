@@ -1,6 +1,6 @@
 spring:
   application:
-    name: project-service
+    name: report-service
   datasource:
     url: jdbc:postgresql://localhost:5432/loadtest
     username: loadtest
@@ -15,7 +15,7 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-    table: flyway_project_history
+    table: flyway_report_history
   kafka:
     bootstrap-servers: localhost:9092
     producer:
@@ -23,15 +23,35 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.add.type.headers: false
+    consumer:
+      group-id: report-service-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "com.loadtest.*"
 
 server:
-  port: 8082
+  port: 8084
 
 minio:
   endpoint: http://localhost:9000
   access-key: minioadmin
   secret-key: minioadmin
-  bucket-artifacts: artifacts
+  bucket-reports: reports
+
+grafana:
+  url: http://localhost:3000
+  token: ${GRAFANA_SERVICE_ACCOUNT_TOKEN:changeme}
+  dashboard-uid: ${GRAFANA_DASHBOARD_UID:load-test-dashboard}
+
+prometheus:
+  url: http://localhost:9090
+
+report:
+  threshold:
+    p95-ms: ${REPORT_THRESHOLD_P95_MS:2000}
+    error-rate: ${REPORT_THRESHOLD_ERROR_RATE:0.01}
 
 management:
   endpoints:
@@ -67,6 +87,10 @@ minio:
   access-key: ${MINIO_ACCESS_KEY}
   secret-key: ${MINIO_SECRET_KEY}
 
+grafana:
+  url: ${GRAFANA_URL}
+  token: ${GRAFANA_SERVICE_ACCOUNT_TOKEN}
+
 logging:
   pattern:
-    console: '{"time":"%d","level":"%p","service":"project-service","msg":"%m"}%n'
+    console: '{"time":"%d","level":"%p","service":"report-service","msg":"%m"}%n'
