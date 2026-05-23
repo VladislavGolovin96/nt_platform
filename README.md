@@ -9,8 +9,7 @@
 ```bash
 git clone <repo-url>
 cd nt_platform
-cp .env.example .env
-# Отредактируй .env — минимум задай JWT_SECRET (32+ символа)
+
 ```
 
 ### 2. Запустить инфраструктуру
