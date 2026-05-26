@@ -4,8 +4,6 @@ import com.loadtest.common.exception.ResourceNotFoundException;
 import com.loadtest.common.kafka.event.ReportGeneratedEvent;
 import com.loadtest.common.kafka.event.TestFinishedEvent;
 import com.loadtest.report.client.GrafanaClient;
-import com.loadtest.report.client.MetricPoint;
-import com.loadtest.report.client.PrometheusClient;
 import com.loadtest.report.domain.ExecutionRecord;
 import com.loadtest.report.domain.Report;
 import com.loadtest.report.domain.ReportStatus;
@@ -30,7 +28,7 @@ public class ReportService {
     private final ReportRepository reportRepository;
     private final ExecutionRecordRepository executionRecordRepository;
     private final GrafanaClient grafanaClient;
-    private final PrometheusClient prometheusClient;
+    private final GatlingLogParser gatlingLogParser;
     private final PdfGenerator pdfGenerator;
     private final MinioService minioService;
     private final ReportKafkaProducer kafkaProducer;
@@ -38,14 +36,14 @@ public class ReportService {
     public ReportService(ReportRepository reportRepository,
                          ExecutionRecordRepository executionRecordRepository,
                          GrafanaClient grafanaClient,
-                         PrometheusClient prometheusClient,
+                         GatlingLogParser gatlingLogParser,
                          PdfGenerator pdfGenerator,
                          MinioService minioService,
                          ReportKafkaProducer kafkaProducer) {
         this.reportRepository = reportRepository;
         this.executionRecordRepository = executionRecordRepository;
         this.grafanaClient = grafanaClient;
-        this.prometheusClient = prometheusClient;
+        this.gatlingLogParser = gatlingLogParser;
         this.pdfGenerator = pdfGenerator;
         this.minioService = minioService;
         this.kafkaProducer = kafkaProducer;
@@ -55,8 +53,7 @@ public class ReportService {
     public void generateReport(TestFinishedEvent event) {
         UUID executionId = UUID.fromString(event.executionId());
 
-        ExecutionRecord execution = executionRecordRepository.findById(executionId)
-                .orElse(null);
+        ExecutionRecord execution = executionRecordRepository.findById(executionId).orElse(null);
         if (execution == null) {
             log.error("Execution {} not found in DB — cannot generate report", executionId);
             return;
@@ -67,26 +64,23 @@ public class ReportService {
         try {
             log.info("Generating report for execution {}", executionId);
 
+            // Parse real Gatling metrics from simulation.log
+            GatlingStats stats = gatlingLogParser.parse(event.resultPath());
+            if (!stats.hasData()) {
+                log.warn("No Gatling stats found for execution {} at path {}",
+                        executionId, event.resultPath());
+            } else {
+                log.info("Parsed Gatling stats: {} requests, p95={}ms, rps={:.2f}",
+                        stats.totalRequests(), stats.p95Ms(), stats.rps());
+            }
+
+            // Try to fetch Grafana panels (best-effort, failures don't abort report)
             Instant from = execution.getStartedAt() != null ? execution.getStartedAt() : Instant.now().minusSeconds(300);
             Instant to   = execution.getFinishedAt() != null ? execution.getFinishedAt() : Instant.now();
 
-            List<MetricPoint> p50   = queryLatencyPercentile(from, to, "0.5");
-            List<MetricPoint> p95   = queryLatencyPercentile(from, to, "0.95");
-            List<MetricPoint> p99   = queryLatencyPercentile(from, to, "0.99");
-            List<MetricPoint> tput  = prometheusClient.queryRange(
-                    "rate(http_server_requests_seconds_count[1m])", from, to, "15s");
-            List<MetricPoint> errRate = prometheusClient.queryRange(
-                    "rate(http_server_requests_seconds_count{status=~\"5..\"}[1m])"
-                            + " / rate(http_server_requests_seconds_count[1m])",
-                    from, to, "15s");
+            List<byte[]> panels = fetchGrafanaPanels(from, to);
 
-            List<byte[]> panels = List.of(
-                    grafanaClient.renderPanel(1, from, to),
-                    grafanaClient.renderPanel(2, from, to)
-            );
-
-            ExecutionReport execReport = ExecutionReport.from(
-                    execution, p50, p95, p99, tput, errRate, panels);
+            ExecutionReport execReport = ExecutionReport.from(execution, stats, panels);
 
             byte[] pdf = pdfGenerator.generate(execReport);
             String pdfPath = minioService.uploadReport(executionId.toString(), pdf);
@@ -143,10 +137,15 @@ public class ReportService {
         return minioService.generatePresignedUrl(report.getPdfPath());
     }
 
-    private List<MetricPoint> queryLatencyPercentile(Instant from, Instant to, String quantile) {
-        String query = String.format(
-                "histogram_quantile(%s, rate(http_server_requests_seconds_bucket[1m])) * 1000",
-                quantile);
-        return prometheusClient.queryRange(query, from, to, "15s");
+    private List<byte[]> fetchGrafanaPanels(Instant from, Instant to) {
+        try {
+            return List.of(
+                    grafanaClient.renderPanel(1, from, to),
+                    grafanaClient.renderPanel(2, from, to)
+            );
+        } catch (Exception e) {
+            log.warn("Failed to fetch Grafana panels (skipped): {}", e.getMessage());
+            return List.of();
+        }
     }
 }

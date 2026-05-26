@@ -89,6 +89,7 @@ public class ExecutionPipelineService {
                     workDir.toString(),
                     execution.getSimulationClass(),
                     executionId.toString(),
+                    execution.getTestType().name(),
                     line -> sseEmitterRegistry.emit(executionId.toString(), line),
                     pid -> saveStatusToRedis(executionId.toString(), "RUNNING", runStartedAt, pid));
 

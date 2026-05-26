@@ -15,10 +15,14 @@
     <name>API Gateway</name>
 
     <dependencies>
-        <!-- Spring Cloud Gateway (reactive, WebFlux-based, includes LoadBalancer) -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-gateway</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
         </dependency>
 
         <!--

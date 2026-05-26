@@ -23,13 +23,13 @@ class GatlingRunnerTest {
 
     @Test
     void buildCommand_containsJavaExecutable() {
-        List<String> cmd = runner.buildCommand("/tmp/classes", "com.example.MySimulation", "exec-123");
+        List<String> cmd = runner.buildCommand("/tmp/classes", "com.example.MySimulation", "exec-123", "SMOKE");
         assertEquals("java", cmd.get(0));
     }
 
     @Test
     void buildCommand_classpathIncludesArtifactAndGatlingLib() {
-        List<String> cmd = runner.buildCommand("/tmp/classes", "com.example.MySimulation", "exec-123");
+        List<String> cmd = runner.buildCommand("/tmp/classes", "com.example.MySimulation", "exec-123", "SMOKE");
         int cpIndex = cmd.indexOf("-cp");
         assertTrue(cpIndex >= 0, "-cp flag must be present");
         String classpath = cmd.get(cpIndex + 1);
@@ -39,13 +39,13 @@ class GatlingRunnerTest {
 
     @Test
     void buildCommand_hasGatlingMainClass() {
-        List<String> cmd = runner.buildCommand("/tmp/classes", "com.example.MySimulation", "exec-123");
+        List<String> cmd = runner.buildCommand("/tmp/classes", "com.example.MySimulation", "exec-123", "SMOKE");
         assertTrue(cmd.contains("io.gatling.app.Gatling"), "Command must include Gatling main class");
     }
 
     @Test
     void buildCommand_hasSimulationClass() {
-        List<String> cmd = runner.buildCommand("/tmp/classes", "com.example.MySimulation", "exec-123");
+        List<String> cmd = runner.buildCommand("/tmp/classes", "com.example.MySimulation", "exec-123", "SMOKE");
         int sIndex = cmd.indexOf("-s");
         assertTrue(sIndex >= 0, "-s flag must be present");
         assertEquals("com.example.MySimulation", cmd.get(sIndex + 1));
@@ -53,11 +53,17 @@ class GatlingRunnerTest {
 
     @Test
     void buildCommand_resultsPathContainsExecutionId() {
-        List<String> cmd = runner.buildCommand("/tmp/classes", "com.example.MySimulation", "exec-123");
+        List<String> cmd = runner.buildCommand("/tmp/classes", "com.example.MySimulation", "exec-123", "SMOKE");
         int rfIndex = cmd.indexOf("-rf");
         assertTrue(rfIndex >= 0, "-rf flag must be present");
         String resultPath = cmd.get(rfIndex + 1);
         assertTrue(resultPath.contains("exec-123"), "Results path must contain executionId");
         assertTrue(resultPath.startsWith("/tmp/gatling-results"), "Results path must start with configured dir");
+    }
+
+    @Test
+    void buildCommand_passesTestTypeAsSystemProperty() {
+        List<String> cmd = runner.buildCommand("/tmp/classes", "com.example.MySimulation", "exec-123", "LOAD");
+        assertTrue(cmd.contains("-DtestType=LOAD"), "Command must pass testType as JVM system property");
     }
 }

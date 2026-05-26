@@ -37,7 +37,8 @@ public class GatlingRunner {
         this.kafkaTemplate = kafkaTemplate;
     }
 
-    public List<String> buildCommand(String artifactClassesDir, String simulationClass, String executionId) {
+    public List<String> buildCommand(String artifactClassesDir, String simulationClass,
+                                     String executionId, String testType) {
         String classpath = artifactClassesDir + ":" + gatlingHome + "/lib/*";
         String resultPath = resultsDir + "/" + executionId;
 
@@ -45,6 +46,8 @@ public class GatlingRunner {
         command.add("java");
         command.add("-cp");
         command.add(classpath);
+        // Pass testType so simulations can configure their load profile via System.getProperty("testType")
+        command.add("-DtestType=" + testType);
         command.add("io.gatling.app.Gatling");
         command.add("-s");
         command.add(simulationClass);
@@ -54,8 +57,9 @@ public class GatlingRunner {
     }
 
     public int run(String artifactClassesDir, String simulationClass, String executionId,
-                   Consumer<String> lineCallback, Consumer<Long> pidCallback) throws IOException, InterruptedException {
-        List<String> command = buildCommand(artifactClassesDir, simulationClass, executionId);
+                   String testType, Consumer<String> lineCallback, Consumer<Long> pidCallback)
+            throws IOException, InterruptedException {
+        List<String> command = buildCommand(artifactClassesDir, simulationClass, executionId, testType);
         log.info("Launching Gatling for execution {}: {}", executionId, String.join(" ", command));
 
         ProcessBuilder pb = new ProcessBuilder(command);

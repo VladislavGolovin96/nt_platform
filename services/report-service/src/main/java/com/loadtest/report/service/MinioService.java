@@ -21,9 +21,11 @@ public class MinioService {
     private String reportsBucket;
 
     private final AmazonS3 amazonS3;
+    private final AmazonS3 amazonS3Public;
 
-    public MinioService(AmazonS3 amazonS3) {
+    public MinioService(AmazonS3 amazonS3, AmazonS3 amazonS3Public) {
         this.amazonS3 = amazonS3;
+        this.amazonS3Public = amazonS3Public;
     }
 
     public String uploadReport(String executionId, byte[] pdfBytes) {
@@ -44,6 +46,7 @@ public class MinioService {
                 new GeneratePresignedUrlRequest(reportsBucket, key)
                         .withMethod(HttpMethod.GET)
                         .withExpiration(expiry);
-        return amazonS3.generatePresignedUrl(urlRequest).toString();
+        // Use public client: signature is computed for the browser-reachable host
+        return amazonS3Public.generatePresignedUrl(urlRequest).toString();
     }
 }

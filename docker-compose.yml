@@ -1,5 +1,12 @@
 version: '3.9'
 
+# ─── Log rotation (applied to every service via logging: *logging) ────────────
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 networks:
   loadtest-net:
     driver: bridge
@@ -12,6 +19,7 @@ volumes:
   minio-data:
   grafana-data:
   prometheus-data:
+  gatling-results:
 
 services:
 
@@ -21,12 +29,13 @@ services:
     image: postgres:16
     container_name: postgres
     restart: unless-stopped
+    logging: *logging
     environment:
       POSTGRES_DB: loadtest
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASS}
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -43,6 +52,7 @@ services:
     image: mongo:7
     container_name: mongodb
     restart: unless-stopped
+    logging: *logging
     environment:
       MONGO_INITDB_DATABASE: loadtest
     ports:
@@ -63,8 +73,9 @@ services:
     image: valkey/valkey:7
     container_name: redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    logging: *logging
+    expose:
+      - "6379"
     volumes:
       - redis-data:/data
     networks:
@@ -80,6 +91,7 @@ services:
     image: confluentinc/cp-kafka:7.6.0
     container_name: kafka
     restart: unless-stopped
+    logging: *logging
     ports:
       - "9092:9092"
     environment:
@@ -111,6 +123,7 @@ services:
   kafka-init:
     image: confluentinc/cp-kafka:7.6.0
     container_name: kafka-init
+    logging: *logging
     depends_on:
       kafka:
         condition: service_healthy
@@ -125,6 +138,7 @@ services:
     image: minio/minio:latest
     container_name: minio
     restart: unless-stopped
+    logging: *logging
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
@@ -147,6 +161,7 @@ services:
     image: grafana/grafana-image-renderer:latest
     container_name: grafana-renderer
     restart: unless-stopped
+    logging: *logging
     ports:
       - "8081:8081"
     environment:
@@ -158,6 +173,7 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     restart: unless-stopped
+    logging: *logging
     depends_on:
       - prometheus
       - grafana-renderer
@@ -186,8 +202,9 @@ services:
     image: prom/prometheus:latest
     container_name: prometheus
     restart: unless-stopped
-    ports:
-      - "9090:9090"
+    logging: *logging
+    expose:
+      - "9090"
     volumes:
       - prometheus-data:/prometheus
       - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
@@ -204,6 +221,7 @@ services:
     image: mailhog/mailhog:latest
     container_name: mailhog
     restart: unless-stopped
+    logging: *logging
     ports:
       - "1025:1025"
       - "8025:8025"
@@ -220,6 +238,7 @@ services:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
     restart: unless-stopped
+    logging: *logging
     depends_on:
       kafka:
         condition: service_healthy
@@ -236,3 +255,202 @@ services:
       timeout: 5s
       retries: 6
       start_period: 30s
+
+  # ─── Application Services ──────────────────────────────────────────────────
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    container_name: auth-service
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      POSTGRES_URL: ${POSTGRES_URL}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASS: ${POSTGRES_PASS}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      KAFKA_BOOTSTRAP: ${KAFKA_BOOTSTRAP}
+      JWT_SECRET: ${JWT_SECRET}
+    networks:
+      - loadtest-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8081/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
+  project-service:
+    build:
+      context: .
+      dockerfile: services/project-service/Dockerfile
+    container_name: project-service
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      POSTGRES_URL: ${POSTGRES_URL}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASS: ${POSTGRES_PASS}
+      KAFKA_BOOTSTRAP: ${KAFKA_BOOTSTRAP}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+    networks:
+      - loadtest-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8082/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
+  execution-service:
+    build:
+      context: .
+      dockerfile: services/execution-service/Dockerfile
+    container_name: execution-service
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      POSTGRES_URL: ${POSTGRES_URL}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASS: ${POSTGRES_PASS}
+      MONGO_URI: ${MONGO_URI}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      KAFKA_BOOTSTRAP: ${KAFKA_BOOTSTRAP}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      GATLING_VERSION: ${GATLING_VERSION}
+    volumes:
+      - gatling-results:/tmp/gatling-results
+    networks:
+      - loadtest-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8083/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 90s
+
+  report-service:
+    build:
+      context: .
+      dockerfile: services/report-service/Dockerfile
+    container_name: report-service
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      POSTGRES_URL: ${POSTGRES_URL}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASS: ${POSTGRES_PASS}
+      KAFKA_BOOTSTRAP: ${KAFKA_BOOTSTRAP}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-http://localhost:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      GRAFANA_URL: ${GRAFANA_URL}
+      GRAFANA_SERVICE_ACCOUNT_TOKEN: ${GRAFANA_SERVICE_ACCOUNT_TOKEN}
+      REPORT_THRESHOLD_P95_MS: ${REPORT_THRESHOLD_P95_MS}
+      REPORT_THRESHOLD_ERROR_RATE: ${REPORT_THRESHOLD_ERROR_RATE}
+    volumes:
+      - gatling-results:/tmp/gatling-results
+    networks:
+      - loadtest-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8084/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    container_name: notification-service
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      POSTGRES_URL: ${POSTGRES_URL}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASS: ${POSTGRES_PASS}
+      KAFKA_BOOTSTRAP: ${KAFKA_BOOTSTRAP}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+    networks:
+      - loadtest-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8085/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: api-gateway
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+    networks:
+      - loadtest-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s

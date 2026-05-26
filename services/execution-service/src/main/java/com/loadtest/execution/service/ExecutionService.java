@@ -48,7 +48,8 @@ public class ExecutionService {
         this.objectMapper = objectMapper;
     }
 
-    @Transactional
+    // No @Transactional here: save() commits immediately so the @Async pipeline
+    // can find the execution in DB without a race condition.
     public ExecutionResponse createExecution(CreateExecutionRequest request, UUID userId) {
         Execution execution = new Execution();
         execution.setProjectId(request.projectId());

@@ -17,6 +17,9 @@ public class MinioConfig {
     @Value("${minio.endpoint}")
     private String endpoint;
 
+    @Value("${minio.public-endpoint}")
+    private String publicEndpoint;
+
     @Value("${minio.access-key}")
     private String accessKey;
 
@@ -26,11 +29,26 @@ public class MinioConfig {
     @Value("${minio.bucket-reports}")
     private String reportsBucket;
 
+    /** Internal client — used for upload/download inside Docker network. */
     @Bean
     public AmazonS3 amazonS3() {
+        return buildClient(endpoint);
+    }
+
+    /**
+     * Public client — used ONLY for presigned URL generation.
+     * Configured with the browser-reachable endpoint so the AWS Signature V4
+     * is computed for the correct Host header (localhost:9000, not minio:9000).
+     */
+    @Bean
+    public AmazonS3 amazonS3Public() {
+        return buildClient(publicEndpoint);
+    }
+
+    private AmazonS3 buildClient(String ep) {
         return AmazonS3ClientBuilder.standard()
                 .withEndpointConfiguration(
-                        new AwsClientBuilder.EndpointConfiguration(endpoint, "us-east-1"))
+                        new AwsClientBuilder.EndpointConfiguration(ep, "us-east-1"))
                 .withCredentials(
                         new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
                 .withPathStyleAccessEnabled(true)
@@ -39,9 +57,8 @@ public class MinioConfig {
 
     @EventListener(ContextRefreshedEvent.class)
     public void ensureBucketsExist() {
-        AmazonS3 s3 = amazonS3();
-        if (!s3.doesBucketExistV2(reportsBucket)) {
-            s3.createBucket(reportsBucket);
+        if (!amazonS3().doesBucketExistV2(reportsBucket)) {
+            amazonS3().createBucket(reportsBucket);
         }
     }
 }

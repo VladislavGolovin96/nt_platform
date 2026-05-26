@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -20,6 +21,7 @@ public interface ReportRepository extends JpaRepository<Report, UUID> {
 
     List<Report> findByUserIdOrderByCreatedAtDesc(UUID userId);
 
+    @Transactional
     @Modifying
     @Query("""
             UPDATE Report r SET
@@ -33,6 +35,7 @@ public interface ReportRepository extends JpaRepository<Report, UUID> {
                      @Param("pdfPath") String pdfPath,
                      @Param("generatedAt") Instant generatedAt);
 
+    @Transactional
     @Modifying
     @Query("UPDATE Report r SET r.status = :status WHERE r.id = :id")
     void updateStatus(@Param("id") UUID id, @Param("status") ReportStatus status);

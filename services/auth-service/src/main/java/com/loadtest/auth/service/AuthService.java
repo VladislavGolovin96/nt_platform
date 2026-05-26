@@ -1,5 +1,18 @@
 package com.loadtest.auth.service;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.HexFormat;
+
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.loadtest.auth.domain.RefreshToken;
 import com.loadtest.auth.domain.User;
 import com.loadtest.auth.dto.LoginRequest;
@@ -8,20 +21,8 @@ import com.loadtest.auth.dto.TokenResponse;
 import com.loadtest.auth.exception.DuplicateResourceException;
 import com.loadtest.auth.repository.RefreshTokenRepository;
 import com.loadtest.auth.repository.UserRepository;
-import io.jsonwebtoken.Claims;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.HexFormat;
+import io.jsonwebtoken.Claims;
 
 @Service
 public class AuthService {

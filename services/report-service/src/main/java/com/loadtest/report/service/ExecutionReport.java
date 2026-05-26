@@ -1,6 +1,5 @@
 package com.loadtest.report.service;
 
-import com.loadtest.report.client.MetricPoint;
 import com.loadtest.report.domain.ExecutionRecord;
 
 import java.time.Instant;
@@ -18,19 +17,11 @@ public record ExecutionReport(
         long durationMs,
         String targetHost,
         String targetMode,
-        List<MetricPoint> p50Latency,
-        List<MetricPoint> p95Latency,
-        List<MetricPoint> p99Latency,
-        List<MetricPoint> throughput,
-        List<MetricPoint> errorRate,
+        GatlingStats gatlingStats,
         List<byte[]> grafanaPanels
 ) {
     public static ExecutionReport from(ExecutionRecord exec,
-                                       List<MetricPoint> p50,
-                                       List<MetricPoint> p95,
-                                       List<MetricPoint> p99,
-                                       List<MetricPoint> throughput,
-                                       List<MetricPoint> errorRate,
+                                       GatlingStats stats,
                                        List<byte[]> grafanaPanels) {
         return new ExecutionReport(
                 exec.getId(),
@@ -43,7 +34,8 @@ public record ExecutionReport(
                 exec.getDurationMs() != null ? exec.getDurationMs() : 0L,
                 exec.getTargetHost(),
                 exec.getTargetMode(),
-                p50, p95, p99, throughput, errorRate, grafanaPanels
+                stats,
+                grafanaPanels
         );
     }
 }

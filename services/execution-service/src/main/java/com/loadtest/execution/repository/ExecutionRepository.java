@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -19,10 +20,12 @@ public interface ExecutionRepository extends JpaRepository<Execution, UUID> {
     Optional<Execution> findByIdAndUserId(UUID id, UUID userId);
 
     @Modifying
+    @Transactional
     @Query("UPDATE Execution e SET e.status = :status WHERE e.id = :id")
     void updateStatus(@Param("id") UUID id, @Param("status") ExecutionStatus status);
 
     @Modifying
+    @Transactional
     @Query("""
             UPDATE Execution e SET
               e.status = :status,
@@ -34,6 +37,7 @@ public interface ExecutionRepository extends JpaRepository<Execution, UUID> {
                        @Param("startedAt") Instant startedAt);
 
     @Modifying
+    @Transactional
     @Query("""
             UPDATE Execution e SET
               e.status = :status,

@@ -76,11 +76,12 @@ public class MinioService {
     }
 
     private void createTarGz(Path sourceDir, Path outputFile) throws IOException, InterruptedException {
-        // tar -czf <output> -C <parent> <dirname>
+        // tar -czf <output> -C <sourceDir> . — archives contents directly (no wrapper dir)
+        // so on extraction: targetDir/demo/ApiSimulation.class (not targetDir/test-classes/demo/...)
         ProcessBuilder pb = new ProcessBuilder(
                 "tar", "-czf", outputFile.toAbsolutePath().toString(),
-                "-C", sourceDir.getParent().toAbsolutePath().toString(),
-                sourceDir.getFileName().toString()
+                "-C", sourceDir.toAbsolutePath().toString(),
+                "."
         ).redirectErrorStream(true);
 
         Process process = pb.start();
