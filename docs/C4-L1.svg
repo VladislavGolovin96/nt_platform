@@ -1,0 +1,98 @@
+<svg viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrowFilled" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#444"/>
+    </marker>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-color="#00000022"/>
+    </filter>
+  </defs>
+
+  <!-- Title -->
+  <text x="450" y="36" text-anchor="middle" font-size="20" font-weight="bold" fill="#1a1a2e">NT Platform — System Context [C4 Level 1]</text>
+  <text x="450" y="56" text-anchor="middle" font-size="12" fill="#666">Нотация C4 Model · Level 1 · System Context Diagram</text>
+
+  <!-- Legend -->
+  <rect x="20" y="520" width="200" height="60" rx="6" fill="#f5f5f5" stroke="#ccc" stroke-width="1"/>
+  <text x="30" y="538" font-size="11" font-weight="bold" fill="#333">Легенда</text>
+  <line x1="30" y1="550" x2="70" y2="550" stroke="#444" stroke-width="2" marker-end="url(#arrowFilled)"/>
+  <text x="75" y="554" font-size="10" fill="#333">Синхронный HTTP-вызов</text>
+
+  <!-- User (Person) -->
+  <g transform="translate(80, 220)" filter="url(#shadow)">
+    <!-- Person icon -->
+    <circle cx="60" cy="30" r="22" fill="#2d7a4f" stroke="#1f5c3a" stroke-width="2"/>
+    <line x1="60" y1="52" x2="60" y2="90" stroke="#2d7a4f" stroke-width="3"/>
+    <line x1="30" y1="68" x2="90" y2="68" stroke="#2d7a4f" stroke-width="3"/>
+    <line x1="60" y1="90" x2="35" y2="115" stroke="#2d7a4f" stroke-width="3"/>
+    <line x1="60" y1="90" x2="85" y2="115" stroke="#2d7a4f" stroke-width="3"/>
+    <!-- Label box -->
+    <rect x="0" y="125" width="120" height="55" rx="8" fill="#2d7a4f" stroke="#1f5c3a" stroke-width="1.5"/>
+    <text x="60" y="143" text-anchor="middle" font-size="14" font-weight="bold" fill="white">User</text>
+    <text x="60" y="158" text-anchor="middle" font-size="10" fill="#d0f0e0">[Person]</text>
+    <text x="60" y="172" text-anchor="middle" font-size="10" fill="#d0f0e0">Developer / QA Engineer</text>
+  </g>
+
+  <!-- NT Platform (Central System) -->
+  <g transform="translate(330, 180)" filter="url(#shadow)">
+    <rect width="240" height="140" rx="12" fill="#1565C0" stroke="#0d47a1" stroke-width="2"/>
+    <rect x="0" y="0" width="240" height="36" rx="12" fill="#0d47a1"/>
+    <rect x="0" y="24" width="240" height="12" fill="#0d47a1"/>
+    <text x="120" y="24" text-anchor="middle" font-size="15" font-weight="bold" fill="white">NT Platform</text>
+    <text x="120" y="50" text-anchor="middle" font-size="11" fill="#b3d4ff">[Software System]</text>
+    <text x="120" y="72" text-anchor="middle" font-size="11" fill="white">Веб-платформа нагрузочного</text>
+    <text x="120" y="88" text-anchor="middle" font-size="11" fill="white">тестирования.</text>
+    <text x="120" y="106" text-anchor="middle" font-size="11" fill="white">6 микросервисов + React SPA</text>
+  </g>
+
+  <!-- Git Repository -->
+  <g transform="translate(700, 100)" filter="url(#shadow)">
+    <rect width="170" height="100" rx="8" fill="#f0f0f0" stroke="#aaa" stroke-width="1.5" stroke-dasharray="6,3"/>
+    <text x="85" y="30" text-anchor="middle" font-size="13" font-weight="bold" fill="#444">Git Repository</text>
+    <text x="85" y="48" text-anchor="middle" font-size="10" fill="#777">[External System]</text>
+    <text x="85" y="68" text-anchor="middle" font-size="10" fill="#555">GitHub / GitLab /</text>
+    <text x="85" y="82" text-anchor="middle" font-size="10" fill="#555">любой Git-сервер</text>
+  </g>
+
+  <!-- Target Application -->
+  <g transform="translate(700, 240)" filter="url(#shadow)">
+    <rect width="170" height="100" rx="8" fill="#f0f0f0" stroke="#aaa" stroke-width="1.5" stroke-dasharray="6,3"/>
+    <text x="85" y="30" text-anchor="middle" font-size="13" font-weight="bold" fill="#444">Target Application</text>
+    <text x="85" y="48" text-anchor="middle" font-size="10" fill="#777">[External System]</text>
+    <text x="85" y="68" text-anchor="middle" font-size="10" fill="#555">Тестируемое</text>
+    <text x="85" y="82" text-anchor="middle" font-size="10" fill="#555">HTTP-приложение</text>
+  </g>
+
+  <!-- SMTP Server -->
+  <g transform="translate(700, 380)" filter="url(#shadow)">
+    <rect width="170" height="100" rx="8" fill="#f0f0f0" stroke="#aaa" stroke-width="1.5" stroke-dasharray="6,3"/>
+    <text x="85" y="30" text-anchor="middle" font-size="13" font-weight="bold" fill="#444">SMTP Server</text>
+    <text x="85" y="48" text-anchor="middle" font-size="10" fill="#777">[External System]</text>
+    <text x="85" y="68" text-anchor="middle" font-size="10" fill="#555">Почтовый сервер</text>
+    <text x="85" y="82" text-anchor="middle" font-size="10" fill="#555">(Mailhog в dev-среде)</text>
+  </g>
+
+  <!-- Arrow: User → NT Platform -->
+  <line x1="200" y1="287" x2="330" y2="287" stroke="#444" stroke-width="2" marker-end="url(#arrowFilled)"/>
+  <rect x="202" y="262" width="125" height="24" rx="4" fill="white" opacity="0.85"/>
+  <text x="264" y="278" text-anchor="middle" font-size="9.5" fill="#333">Управляет тестами,</text>
+  <text x="264" y="291" text-anchor="middle" font-size="9" fill="#333">смотрит результаты [HTTPS]</text>
+
+  <!-- Arrow: NT Platform → Git Repository -->
+  <line x1="570" y1="230" x2="700" y2="168" stroke="#444" stroke-width="2" marker-end="url(#arrowFilled)"/>
+  <rect x="592" y="178" width="102" height="24" rx="4" fill="white" opacity="0.85"/>
+  <text x="643" y="189" text-anchor="middle" font-size="9.5" fill="#333">Клонирует репозитории</text>
+  <text x="643" y="201" text-anchor="middle" font-size="9" fill="#333">[JGit / HTTPS]</text>
+
+  <!-- Arrow: NT Platform → Target Application -->
+  <line x1="570" y1="280" x2="700" y2="290" stroke="#444" stroke-width="2" marker-end="url(#arrowFilled)"/>
+  <rect x="585" y="268" width="110" height="24" rx="4" fill="white" opacity="0.85"/>
+  <text x="640" y="279" text-anchor="middle" font-size="9.5" fill="#333">Запускает нагрузку</text>
+  <text x="640" y="291" text-anchor="middle" font-size="9" fill="#333">[HTTP/HTTPS via Gatling]</text>
+
+  <!-- Arrow: NT Platform → SMTP Server -->
+  <line x1="570" y1="310" x2="700" y2="400" stroke="#444" stroke-width="2" marker-end="url(#arrowFilled)"/>
+  <rect x="574" y="340" width="115" height="24" rx="4" fill="white" opacity="0.85"/>
+  <text x="631" y="351" text-anchor="middle" font-size="9.5" fill="#333">Отправляет уведомления</text>
+  <text x="631" y="363" text-anchor="middle" font-size="9" fill="#333">[SMTP]</text>
+</svg>
