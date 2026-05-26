@@ -36,4 +36,4 @@ gatling-results/
 # IntelliJ
 *.class
 
-
+.claude
